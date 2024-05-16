@@ -19,9 +19,9 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS healthdata_heart_rate (
     username TEXT,
     heart_rate INT,
-    FOREIGN KEY (username) REFERENCES user(username) #这几个的外键都是username
+    FOREIGN KEY (username) REFERENCES user(username) 
 );
-''')
+''')#这几个的外键都是username，而且python的注释不能写到execute里面
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS healthdata_blood_pressure (
