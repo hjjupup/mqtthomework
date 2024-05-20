@@ -1,0 +1,46 @@
+import paho.mqtt.client as mqtt
+
+# MQTT 服务器地址和端口
+broker_address = "mqtt.healthcare.com"
+port = 1883
+
+# 定义 MQTT 客户端
+client = mqtt.Client()
+
+# 连接到 MQTT 服务器
+client.connect(broker_address, port)
+
+# 发布医疗数据消息
+def publish_medical_data(topic, medical_data):
+    client.publish(topic, medical_data)
+    print("Published medical data:", medical_data, "to topic:", topic)
+
+# 订阅医疗数据消息
+def subscribe_medical_data(topic):
+    client.subscribe(topic)
+    print("Subscribed to medical data topic:", topic)
+
+# 定义处理医疗数据消息的回调函数
+def on_medical_data_message(client, userdata, message):
+    print("Received medical data:", str(message.payload.decode("utf-8")), "on topic:", message.topic)
+    # 在这里添加处理医疗数据的逻辑
+
+# 设置医疗数据消息接收的回调函数
+client.on_message = on_medical_data_message
+
+# 开始循环监听医疗数据消息
+client.loop_start()
+
+# 示例用法：
+# 发布医疗数据消息
+publish_medical_data("topic/medical", "Patient's vital signs: HR=75, BP=120/80")
+
+# 订阅医疗数据消息
+subscribe_medical_data("topic/medical")
+
+# 等待一段时间，让订阅的消息可以收到
+import time
+time.sleep(5)
+
+# 断开连接
+client.disconnect()
