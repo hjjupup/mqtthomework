@@ -1,0 +1,26 @@
+#ubuntu
+#mosquitto
+#mqtt_broker
+
+
+sudo vi /etc/mosquitto/conf.d/myconfig.conf
+#添加监听端口（很重要，否则只能本机访问）
+listener 1883
+#-------------------------------------------
+# 关闭匿名访问，客户端必须使用用户名
+allow_anonymous false
+
+#指定 用户名-密码 文件
+password_file /etc/mosquitto/pwfile.txt
+#--------------------------------------------
+
+sudo mosquitto_passwd -c /etc/mosquitto/pwfile.txt xiaoliu
+#回车后连续输两次密码
+
+sudo service mosquitto start
+sudo service mosquitto status
+
+mosquitto_sub -h localhost -t "lai001/#" -u xiaoliu -P 123456 -i “client1”
+mosquitto_pub -h localhost -t "lai001/testTopic" -u xiaoliu -P 123456 -m "Hello MQTT from mosquitto-clients"
+
+
