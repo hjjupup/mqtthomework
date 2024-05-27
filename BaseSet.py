@@ -5,7 +5,7 @@ import mysql.connector
 db_config = {
     'host': 'localhost',
     'user': 'mqttuser',
-    'password': 'mqttpassword',  # 替换为你的root密码
+    'password': '',  # 替换为
     'database': 'mqtt_data'
 }
 
@@ -14,9 +14,9 @@ conn = mysql.connector.connect(**db_config)
 cursor = conn.cursor()
 
 # MQTT配置
-MQTT_BROKER = 'localhost'  # 或其他MQTT服务器地址
+MQTT_BROKER = 'localhost' 
 MQTT_PORT = 1883
-MQTT_TOPIC = 'hdjhdj/newbie'  # 更改为你的MQTT主题
+MQTT_TOPIC = 'hdjhdj/newbie'
 
 
 # 当接收到MQTT消息时的回调函数
