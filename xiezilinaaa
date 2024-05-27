@@ -1,0 +1,125 @@
+my-health-monitoring-app/
+├── public/
+│   ├── index.html
+├── src/
+│   ├── components/
+│   │   ├── Dashboard.js
+│   │   ├── Header.js
+│   │   ├── RealtimeChart.js
+│   │   ├── HistoryChart.js
+│   ├── App.js
+│   ├── index.js
+├── package.json
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css'; // 导入样式文件
+import App from './App'; // 导入App组件
+
+// 使用ReactDOM的render方法，将App组件渲染到public/index.html中的<div id="root"></div>元素中
+ReactDOM.render(
+  <React.StrictMode> // 严格模式，帮助检测潜在问题
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root') // 渲染到根节点
+);
+import React from 'react';
+import './App.css'; // 导入样式文件
+import Header from './components/Header'; // 导入Header组件
+import Dashboard from './components/Dashboard'; // 导入Dashboard组件
+
+// App组件是应用的根组件，包含Header和Dashboard组件
+function App() {
+  return (
+    <div className="App">
+      <Header /> {/* 渲染Header组件 */}
+      <Dashboard /> {/* 渲染Dashboard组件 */}
+    </div>
+  );
+}
+
+export default App;
+import React from 'react';
+
+// Header组件负责渲染应用的标题
+const Header = () => {
+  return (
+    <header className="App-header">
+      <h1>Health Monitoring System</h1> {/* 显示应用标题 */}
+    </header>
+  );
+}
+
+export default Header;
+import React, { useState, useEffect } from 'react';
+import RealtimeChart from './RealtimeChart'; // 导入RealtimeChart组件
+import HistoryChart from './HistoryChart'; // 导入HistoryChart组件
+
+// Dashboard组件管理和展示实时数据和历史数据
+const Dashboard = () => {
+  // 使用useState钩子来管理实时数据和历史数据的状态
+  const [realtimeData, setRealtimeData] = useState([]);
+  const [historyData, setHistoryData] = useState([]);
+
+  // 使用useEffect钩子来模拟接收数据，通过setInterval每两秒生成一条随机数据
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newData = {
+        heartRate: Math.floor(Math.random() * 40) + 60, // 随机生成心率数据
+        pulse: Math.floor(Math.random() * 40) + 60, // 随机生成脉搏数据
+        bloodPressure: Math.floor(Math.random() * 40) + 120, // 随机生成血压数据
+        timestamp: new Date() // 当前时间戳
+      };
+      // 更新实时数据和历史数据
+      setRealtimeData(prevData => [...prevData, newData]);
+      setHistoryData(prevData => [...prevData, newData]);
+    }, 2000);
+
+    // 清除定时器
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div>
+      <h2>Real-time Data</h2>
+      <RealtimeChart data={realtimeData} /> {/* 渲染RealtimeChart组件 */}
+      <h2>Historical Data</h2>
+      <HistoryChart data={historyData} /> {/* 渲染HistoryChart组件 */}
+    </div>
+  );
+}
+
+export default Dashboard;
+import React from 'react';
+import { Line } from 'react-chartjs-2'; // 导入Line组件用于绘制折线图
+
+// RealtimeChart组件使用react-chartjs-2库中的Line组件来绘制实时数据的折线图
+const RealtimeChart = ({ data }) => {
+  // 定义图表的数据来源和外观
+  const chartData = {
+    labels: data.map(d => d.timestamp.toLocaleTimeString()), // 使用时间戳作为标签
+    datasets: [
+      {
+        label: 'Heart Rate',
+        data: data.map(d => d.heartRate), // 心率数据
+        borderColor: 'red', // 红色边框
+        fill: false, // 不填充颜色
+      },
+      {
+        label: 'Pulse',
+        data: data.map(d => d.pulse), // 脉搏数据
+        borderColor: 'blue', // 蓝色边框
+        fill: false, // 不填充颜色
+      },
+      {
+        label: 'Blood Pressure',
+        data: data.map(d => d.bloodPressure), // 血压数据
+        borderColor: 'green', // 绿色边框
+        fill: false, // 不填充颜色
+      }
+    ]
+  };
+
+  return <Line data={chartData} />; // 渲染折线图
+}
+
+export default RealtimeChart;
