@@ -1,0 +1,69 @@
+import paho.mqtt.client as mqtt
+import logging
+import json
+import sentry_sdk
+
+# 配置日志记录
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# 配置Sentry（如果需要）
+sentry_sdk.init("YOUR_SENTRY_DSN")
+
+class HealthMonitorSubscriber:
+    def __init__(self, broker, port, topics, client_id=None):
+        self.broker = broker
+        self.port = port
+        self.topics = topics
+        self.client = mqtt.Client(client_id)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.client.on_disconnect = self.on_disconnect
+        self.client.on_log = self.on_log
+
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            logger.info(f"Connected to broker {self.broker}")
+            for topic in self.topics:
+                self.client.subscribe(topic)
+                logger.info(f"Subscribed to topic {topic}")
+        else:
+            logger.error(f"Failed to connect, return code {rc}")
+
+    def on_message(self, client, userdata, msg):
+        try:
+            data = json.loads(msg.payload.decode())
+            logger.info(f"Received message on topic '{msg.topic}': {data}")
+            self.process_data(msg.topic, data)
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
+            sentry_sdk.capture_exception(e)
+
+    def on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            logger.warning("Unexpected disconnection.")
+        else:
+            logger.info("Disconnected from broker")
+
+    def on_log(self, client, userdata, level, buf):
+        logger.debug(f"Log: {buf}")
+
+    def process_data(self, topic, data):
+        # 根据主题和数据进行处理，例如存储到数据库，触发报警等
+        logger.info(f"Processing data from topic {topic}: {data}")
+
+    def start(self):
+        try:
+            self.client.connect(self.broker, self.port, 60)
+            self.client.loop_forever()
+        except Exception as e:
+            logger.error(f"Error in connection: {e}")
+            sentry_sdk.capture_exception(e)
+
+if __name__ == "__main__":
+    broker = "mqtt.eclipse.org"
+    port = 1883
+    topics = ["health/heartbeat", "health/pulse", "health/bloodpressure"]
+
+    subscriber = HealthMonitorSubscriber(broker, port, topics)
+    subscriber.start()
