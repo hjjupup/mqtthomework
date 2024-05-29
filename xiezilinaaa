@@ -1,125 +1,180 @@
-my-health-monitoring-app/
-├── public/
-│   ├── index.html
-├── src/
-│   ├── components/
-│   │   ├── Dashboard.js
-│   │   ├── Header.js
-│   │   ├── RealtimeChart.js
-│   │   ├── HistoryChart.js
-│   ├── App.js
-│   ├── index.js
-├── package.json
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css'; // 导入样式文件
-import App from './App'; // 导入App组件
+app.py:
 
-// 使用ReactDOM的render方法，将App组件渲染到public/index.html中的<div id="root"></div>元素中
-ReactDOM.render(
-  <React.StrictMode> // 严格模式，帮助检测潜在问题
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root') // 渲染到根节点
-);
-import React from 'react';
-import './App.css'; // 导入样式文件
-import Header from './components/Header'; // 导入Header组件
-import Dashboard from './components/Dashboard'; // 导入Dashboard组件
 
-// App组件是应用的根组件，包含Header和Dashboard组件
-function App() {
-  return (
-    <div className="App">
-      <Header /> {/* 渲染Header组件 */}
-      <Dashboard /> {/* 渲染Dashboard组件 */}
-    </div>
-  );
-}
+from flask import Flask, jsonify, render_template
+from flask_mqtt import Mqtt
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
-export default App;
-import React from 'react';
+app = Flask(__name__)
 
-// Header组件负责渲染应用的标题
-const Header = () => {
-  return (
-    <header className="App-header">
-      <h1>Health Monitoring System</h1> {/* 显示应用标题 */}
-    </header>
-  );
-}
+# MQTT Configuration
+app.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'
+app.config['MQTT_BROKER_PORT'] = 1883
+app.config['MQTT_USERNAME'] = ''
+app.config['MQTT_PASSWORD'] = ''
+app.config['MQTT_KEEPALIVE'] = 60
+app.config['MQTT_TLS_ENABLED'] = False
 
-export default Header;
-import React, { useState, useEffect } from 'react';
-import RealtimeChart from './RealtimeChart'; // 导入RealtimeChart组件
-import HistoryChart from './HistoryChart'; // 导入HistoryChart组件
+mqtt = Mqtt(app)
 
-// Dashboard组件管理和展示实时数据和历史数据
-const Dashboard = () => {
-  // 使用useState钩子来管理实时数据和历史数据的状态
-  const [realtimeData, setRealtimeData] = useState([]);
-  const [historyData, setHistoryData] = useState([]);
+# Database Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///health_data.db'
+db = SQLAlchemy(app)
 
-  // 使用useEffect钩子来模拟接收数据，通过setInterval每两秒生成一条随机数据
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newData = {
-        heartRate: Math.floor(Math.random() * 40) + 60, // 随机生成心率数据
-        pulse: Math.floor(Math.random() * 40) + 60, // 随机生成脉搏数据
-        bloodPressure: Math.floor(Math.random() * 40) + 120, // 随机生成血压数据
-        timestamp: new Date() // 当前时间戳
-      };
-      // 更新实时数据和历史数据
-      setRealtimeData(prevData => [...prevData, newData]);
-      setHistoryData(prevData => [...prevData, newData]);
-    }, 2000);
+class HealthData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    topic = db.Column(db.String(50), nullable=False)
+    payload = db.Column(db.String(200), nullable=False)
 
-    // 清除定时器
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div>
-      <h2>Real-time Data</h2>
-      <RealtimeChart data={realtimeData} /> {/* 渲染RealtimeChart组件 */}
-      <h2>Historical Data</h2>
-      <HistoryChart data={historyData} /> {/* 渲染HistoryChart组件 */}
-    </div>
-  );
-}
-
-export default Dashboard;
-import React from 'react';
-import { Line } from 'react-chartjs-2'; // 导入Line组件用于绘制折线图
-
-// RealtimeChart组件使用react-chartjs-2库中的Line组件来绘制实时数据的折线图
-const RealtimeChart = ({ data }) => {
-  // 定义图表的数据来源和外观
-  const chartData = {
-    labels: data.map(d => d.timestamp.toLocaleTimeString()), // 使用时间戳作为标签
-    datasets: [
-      {
-        label: 'Heart Rate',
-        data: data.map(d => d.heartRate), // 心率数据
-        borderColor: 'red', // 红色边框
-        fill: false, // 不填充颜色
-      },
-      {
-        label: 'Pulse',
-        data: data.map(d => d.pulse), // 脉搏数据
-        borderColor: 'blue', // 蓝色边框
-        fill: false, // 不填充颜色
-      },
-      {
-        label: 'Blood Pressure',
-        data: data.map(d => d.bloodPressure), // 血压数据
-        borderColor: 'green', // 绿色边框
-        fill: false, // 不填充颜色
-      }
+def init_data():
+    test_data = [
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 80, "pulse": 70, "blood_pressure": "120/80"}'},
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 85, "pulse": 75, "blood_pressure": "122/82"}'},
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 90, "pulse": 72, "blood_pressure": "125/85"}'}
     ]
-  };
+    for data in test_data:
+        health_data = HealthData(topic=data['topic'], payload=data['payload'])
+        db.session.add(health_data)
+    db.session.commit()
 
-  return <Line data={chartData} />; // 渲染折线图
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/data')
+def get_data():
+    data = HealthData.query.order_by(HealthData.timestamp.desc()).all()
+    return jsonify([{
+        'timestamp': data_item.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        'topic': data_item.topic,
+        'payload': data_item.payload
+    } for data_item in data])
+
+@mqtt.on_connect()
+def handle_connect(client, userdata, flags, rc):
+    mqtt.subscribe('health/#')
+
+@mqtt.on_message()
+def handle_mqtt_message(client, userdata, message):
+    data = HealthData(topic=message.topic, payload=message.payload.decode())
+    db.session.add(data)
+    db.session.commit()
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+        init_data()
+    app.run(debug=True)
+
+
+index.html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitoring Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Patient Health Monitoring System</h1>
+    </header>
+    <div id="dashboard">
+        <h2>Realtime Data</h2>
+        <div id="realtime-data"></div>
+        <h2>Historical Data</h2>
+        <div id="history-data"></div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
+
+
+script.js
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("Page is fully loaded. Initializing data fetch...");
+
+    fetchData();
+
+    setInterval(fetchData, 5000); // Fetch data every 5 seconds
+
+    function fetchData() {
+        console.log("Fetching data from server...");
+
+        fetch('/data')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                console.log("Data fetched successfully.");
+                return response.json();
+            })
+            .then(data => {
+                console.log("Data received:", data);
+                if (data.length === 0) {
+                    console.warn("No data received from server.");
+                }
+                displayData(data);
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+            });
+    }
+
+    function displayData(data) {
+        console.log("Displaying data on the page...");
+
+        const realtimeDataContainer = document.getElementById('realtime-data');
+        const historyDataContainer = document.getElementById('history-data');
+
+        realtimeDataContainer.innerHTML = '';
+        historyDataContainer.innerHTML = '';
+
+        data.forEach((item, index) => {
+            const dataElement = document.createElement('div');
+            dataElement.textContent = `时间: ${item.timestamp}, 主题: ${item.topic}, 数据: ${item.payload}`;
+
+            if (index === 0) {
+                console.log("Adding data to realtime container:", dataElement.textContent);
+                realtimeDataContainer.appendChild(dataElement);
+            } else {
+                console.log("Adding data to history container:", dataElement.textContent);
+                historyDataContainer.appendChild(dataElement);
+            }
+        });
+
+        console.log("Data displayed successfully.");
+    }
+});
+
+style.css
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
 }
 
-export default RealtimeChart;
+header {
+    background-color: #282c34;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+#dashboard {
+    padding: 20px;
+}
+
+#realtime-data, #history-data {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
