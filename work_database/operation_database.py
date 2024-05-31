@@ -115,4 +115,20 @@ def update_data(username, datetime, new_value, data_type):
     ''', (new_value, username, datetime))
     conn.commit()
 
+#传输图标的函数
+def publish_chart(username, client):
+    image_file = f'{username}_health_data_chart.png'
+    try:
+        with open(image_file, 'rb') as f:
+            image_data = f.read()
+            #将图片转换为base64编码
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            client.connect('localhost', 1883)
+            client.publish('image_topic', image_base64)
+            # 断开连接
+            client.disconnect()
+    except FileNotFoundError:
+        print(f'Chart image file not found for {username}')
+
+
 
