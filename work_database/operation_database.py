@@ -1,6 +1,7 @@
-#这段主要写的就是on_message用来接收处理message，之后会根据message去操作database
+#这段主要写的就是on_message用来接收处理message，之后会根据message去操作database，还有图片的传输函数
 import mysql.connector
 import sqlite3
+import base64
 
 
 #topic的大致结构healthdata/user_id/operation_type/data_type/data_value/data_time
