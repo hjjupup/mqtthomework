@@ -1,0 +1,322 @@
+project/
+│
+├── app.py
+├── health_data.db
+├── templates/
+│   └── index.html
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   ├── script.js
+│   │   └── websocket.js
+│   └── images/
+│       └── logo.png
+└── README.md
+
+app.py
+
+from flask import Flask, jsonify, render_template
+from flask_mqtt import Mqtt
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_caching import Cache
+from datetime import datetime
+
+appN = Flask(__name__)
+
+# MQTT Configuration
+appN.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'
+appN.config['MQTT_BROKER_PORT'] = 1883
+appN.config['MQTT_USERNAME'] = ''
+appN.config['MQTT_PASSWORD'] = ''
+appN.config['MQTT_KEEPALIVE'] = 60
+appN.config['MQTT_TLS_ENABLED'] = False
+
+mqtt = Mqtt(appN)
+
+# Database Configuration
+appN.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///health_data.db'
+db = SQLAlchemy(appN)
+
+# JWT Configuration
+appN.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
+jwt = JWTManager(appN)
+
+# Cache Configuration
+appN.config['CACHE_TYPE'] = 'RedisCache'
+appN.config['CACHE_REDIS_HOST'] = 'localhost'
+appN.config['CACHE_REDIS_PORT'] = 6379
+appN.config['CACHE_REDIS_DB'] = 0
+appN.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+cache = Cache(appN)
+
+class HealthData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    topic = db.Column(db.String(50), nullable=False)
+    payload = db.Column(db.String(200), nullable=False)
+
+def init_data():
+    test_data = [
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 80, "pulse": 70, "blood_pressure": "120/80"}'},
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 85, "pulse": 75, "blood_pressure": "122/82"}'},
+        {'topic': 'health/monitor', 'payload': '{"heartbeat": 90, "pulse": 72, "blood_pressure": "125/85"}'}
+    ]
+    for data in test_data:
+        health_data = HealthData(topic=data['topic'], payload=data['payload'])
+        db.session.add(health_data)
+    db.session.commit()
+
+@appN.route('/')
+def index():
+    return render_template('index.html')
+
+@appN.route('/data')
+@cache.cached(timeout=60)
+def get_data():
+    data = HealthData.query.order_by(HealthData.timestamp.desc()).all()
+    return jsonify([{
+        'timestamp': data_item.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        'topic': data_item.topic,
+        'payload': data_item.payload
+    } for data_item in data])
+
+@mqtt.on_connect()
+def handle_connect(client, userdata, flags, rc):
+    mqtt.subscribe('health/#')
+
+@mqtt.on_message()
+def handle_mqtt_message(client, userdata, message):
+    data = HealthData(topic=message.topic, payload=message.payload.decode())
+    db.session.add(data)
+    db.session.commit()
+
+if __name__ == '__main__':
+    with appN.app_context():
+        db.create_all()
+        # Initialize the database with test data if needed
+        init_data()
+    appN.run(debug=True, port=5001)
+
+
+
+requirement.txt
+blinker==1.8.2
+click==8.1.7
+Flask==3.0.3
+importlib_metadata==7.1.0
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+Werkzeug==3.0.3
+zipp==3.19.1
+Flask
+Flask-MQTT
+Flask-SQLAlchemy
+
+favicon.ico.html
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitoring Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+
+
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitoring Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.css">
+</head>
+<body>
+    <header>
+        <img src="/static/images/logo.png" alt="Logo">
+        <h1>Patient Health Monitoring System</h1>
+    </header>
+    <div id="dashboard">
+        <h2>Realtime Data</h2>
+        <canvas id="realtime-chart"></canvas>
+        <h2>Historical Data</h2>
+        <canvas id="history-chart"></canvas>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script src="/static/js/script.js"></script>
+    <script src="/static/js/websocket.js"></script>
+</body>
+</html>
+
+style.css
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #282c34;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+header img {
+    height: 50px;
+}
+
+#dashboard {
+    padding: 20px;
+}
+
+canvas {
+    margin: 20px 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+}
+
+script.js
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("Page is fully loaded. Initializing data fetch...");
+
+    const realtimeCtx = document.getElementById('realtime-chart').getContext('2d');
+    const historyCtx = document.getElementById('history-chart').getContext('2d');
+
+    const realtimeChart = new Chart(realtimeCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Realtime Data',
+                data: [],
+                borderColor: 'rgba(128, 0, 128, 1)', // 紫色线条
+                backgroundColor: 'rgba(128, 0, 128, 0.2)' // 紫色背景（带有透明度）
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    min: 60, // 设置Y轴的最小值
+                    max: 100, // 设置Y轴的最大值
+                    ticks: {
+                        stepSize: 5 // 设置刻度的步长
+                    }
+                }
+            }
+        }
+    });
+
+    const historyChart = new Chart(historyCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Historical Data',
+                data: [],
+                borderColor: 'rgba(128, 0, 128, 1)', // 紫色线条
+                backgroundColor: 'rgba(128, 0, 128, 0.2)' // 紫色背景（带有透明度）
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    min: 60, // 设置Y轴的最小值
+                    max: 100, // 设置Y轴的最大值
+                    ticks: {
+                        stepSize: 5 // 设置刻度的步长
+                    }
+                }
+            }
+        }
+    });
+
+    fetchData();
+    setInterval(fetchData, 5000);
+
+    function fetchData() {
+        console.log("Fetching data from server...");
+
+        fetch('/data')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                console.log("Data fetched successfully.");
+                return response.json();
+            })
+            .then(data => {
+                console.log("Data received:", data);
+                updateCharts(data);
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+            });
+    }
+
+    function updateCharts(data) {
+        console.log("Updating charts with new data...");
+
+        const labels = data.map(item => item.timestamp);
+        const values = data.map(item => JSON.parse(item.payload).heartbeat);
+
+        realtimeChart.data.labels = labels;
+        realtimeChart.data.datasets[0].data = values;
+        realtimeChart.update();
+
+        historyChart.data.labels = labels;
+        historyChart.data.datasets[0].data = values;
+        historyChart.update();
+    }
+});
+
+
+web.js
+const realtimeChart = new Chart(realtimeCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Realtime Data', data: [] }] },
+});
+
+const ws = new WebSocket('ws://localhost:5001/realtime');
+
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log("Realtime data received:", data);
+
+    const timestamp = data.timestamp;
+    const payload = JSON.parse(data.payload);
+    const heartbeat = payload.heartbeat;
+
+    realtimeChart.data.labels.push(timestamp);
+    realtimeChart.data.datasets[0].data.push(heartbeat);
+    realtimeChart.update();
+};
+
+
+chart.js
+const ws = new WebSocket('ws://localhost:5001/realtime');
+
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log("Realtime data received:", data);
+
+    const labels = [data.timestamp];
+    const values = [JSON.parse(data.payload).heartbeat];
+
+    realtimeChart.data.labels.push(labels);
+    realtimeChart.data.datasets[0].data.push(values);
+    realtimeChart.update();
+};
+
+mqtt-client.py
+from flask_mqtt import Mqtt
+
+mqtt = Mqtt()
+
+def subscribe_to_topic(topic):
+    mqtt.subscribe(topic)
