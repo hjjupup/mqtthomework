@@ -40,6 +40,9 @@ def message_handler(client,topic,msg):
     # if not ret:
     #     return
     # topic的大致结构healthdata/user_id/operation_type/data_type/data_value/data_time
+    if topic_len == 2:#针对可视化的message_hander
+        user_id = topics[1]
+        publish_chart(user_id,client)
     if topic_len == 4:
         operation_type=topics[2]
         if operation_type=='query_data':
