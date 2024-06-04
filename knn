@@ -1,0 +1,38 @@
+import pandas as pd
+import numpy as np
+import operator
+# 导入数据
+data = pd.read_csv("iris.csv")
+# 计算两个数据点之间的欧几里德距离
+def euclideanDistance(data1, data2, length):
+    distance = 0
+    for x in range(length):
+        distance += np.square(data1[x] - data2[x])
+    return np.sqrt(distance)
+
+# KNN 模型
+def knn(trainingSet, testInstance, k):
+    distances = {}
+    sort = {}
+    length = testInstance.shape[1]
+    # 计算每行训练数据和测试数据之间的欧氏距离
+    for x in range(len(trainingSet)):
+        dist = euclideanDistance(testInstance, trainingSet.iloc[x], length)
+        distances[x] = dist[0]
+        # 根据距离对它们进行排序
+        sorted_d = sorted(distances.items(), key=operator.itemgetter(1))
+    neighbors = []
+    # 提取前 k 个邻居
+    for x in range(k):
+        neighbors.append(sorted_d[x][0])
+    classVotes = {}
+    # 计算邻居中频率最高的类别
+    for x in range(len(neighbors)):
+        response = trainingSet.iloc[neighbors[x]][-1]
+        if response in classVotes:
+            classVotes[response] += 1
+        else:
+            classVotes[response] = 1
+
+    sortedVotes = sorted(classVotes.items(), key=operator.itemgetter(1), reverse=True)
+    return (sortedVotes[0][0], neighbors)
