@@ -116,7 +116,7 @@ def update_data(username, datetime, new_value, data_type):
     ''', (new_value, username, datetime))
     conn.commit()
 
-#传输图标的函数
+#传输可视化的函数
 def publish_chart(username, client):
     image_file = f'{username}_health_data_chart.png'
     try:
