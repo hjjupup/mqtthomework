@@ -1,69 +1,39 @@
 import paho.mqtt.client as mqtt
-import logging
 import json
-import sentry_sdk
-
-# 配置日志记录
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# 配置Sentry（如果需要）
-sentry_sdk.init("YOUR_SENTRY_DSN")
-
-class HealthMonitorSubscriber:
-    def __init__(self, broker, port, topics, client_id=None):
+#报警系统实现subcriber和publisher功能
+class AlarmSystem:
+    def __init__(self, broker, port, topic_data, topic_alert):
         self.broker = broker
         self.port = port
-        self.topics = topics
-        self.client = mqtt.Client(client_id)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.on_disconnect = self.on_disconnect
-        self.client.on_log = self.on_log
+        self.topic_data = topic_data
+        self.topic_alert = topic_alert
 
-    def on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            logger.info(f"Connected to broker {self.broker}")
-            for topic in self.topics:
-                self.client.subscribe(topic)
-                logger.info(f"Subscribed to topic {topic}")
-        else:
-            logger.error(f"Failed to connect, return code {rc}")
+        self.heart_rate_range = (60, 100)
+        self.blood_pressure_range = (90, 120)  # systolic range example
+        self.pulse_range = (60, 100)
+
+        self.client = mqtt.Client()
+        self.client.on_message = self.on_message
+
+    def connect(self):
+        self.client.connect(self.broker, self.port, 60)
+        self.client.subscribe(self.topic_data)
+        self.client.loop_start()
 
     def on_message(self, client, userdata, msg):
-        try:
-            data = json.loads(msg.payload.decode())
-            logger.info(f"Received message on topic '{msg.topic}': {data}")
-            self.process_data(msg.topic, data)
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
-            sentry_sdk.capture_exception(e)
+        data = json.loads(msg.payload)
+        alert = self.check_data(data)
+        if alert:
+            self.publish_alert({"message": alert, "data": data})
 
-    def on_disconnect(self, client, userdata, rc):
-        if rc != 0:
-            logger.warning("Unexpected disconnection.")
-        else:
-            logger.info("Disconnected from broker")
+    def publish_alert(self, alert):
+        self.client.publish(self.topic_alert, json.dumps(alert))
 
-    def on_log(self, client, userdata, level, buf):
-        logger.debug(f"Log: {buf}")
-
-    def process_data(self, topic, data):
-        # 根据主题和数据进行处理，例如存储到数据库，触发报警等
-        logger.info(f"Processing data from topic {topic}: {data}")
-
-    def start(self):
-        try:
-            self.client.connect(self.broker, self.port, 60)
-            self.client.loop_forever()
-        except Exception as e:
-            logger.error(f"Error in connection: {e}")
-            sentry_sdk.capture_exception(e)
-
-if __name__ == "__main__":
-    broker = "mqtt.eclipse.org"
-    port = 1883
-    topics = ["health/heartbeat", "health/pulse", "health/bloodpressure"]
-
-    subscriber = HealthMonitorSubscriber(broker, port, topics)
-    subscriber.start()
+    def check_data(self, data):
+        if not self.heart_rate_range[0] <= data["heart_rate"] <= self.heart_rate_range[1]:
+            return f"Heart rate out of range: {data['heart_rate']}"
+        if not self.blood_pressure_range[0] <= data["blood_pressure_systolic"] <= self.blood_pressure_range[1]:
+            return f"Blood pressure out of range: {data['blood_pressure_systolic']}"
+        if not self.pulse_range[0] <= data["pulse"] <= self.pulse_range[1]:
+            return f"Pulse out of range: {data['pulse']}"
+        return None
