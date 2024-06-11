@@ -1,0 +1,157 @@
+def train_heartbeat_svm():
+    # 生成正常心跳数据 (90-120)
+    X_normal = np.random.randint(90, 121, (50, 1))
+    y_normal = np.zeros(50)  # 正常标签为0
+
+    # 生成异常心跳数据
+    X_abnormal_low = np.random.randint(60, 90, (25, 1))
+    X_abnormal_high = np.random.randint(121, 150, (25, 1))
+    X_abnormal = np.vstack((X_abnormal_low, X_abnormal_high))
+    y_abnormal = np.ones(50)  # 异常标签为1
+
+    # 合并正常和异常数据
+    X = np.vstack((X_normal, X_abnormal))
+    y = np.concatenate((y_normal, y_abnormal))
+
+    # 打乱数据
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    X = X[indices]
+    y = y[indices]
+
+    # 训练SVM模型
+    model = svm.SVC(kernel='linear')
+    model.fit(X, y)
+
+    return model
+
+
+def train_pulse_svm():
+    # 生成正常脉搏数据 (60-100)
+    X_normal = np.random.randint(60, 101, (50, 1))
+    y_normal = np.zeros(50)  # 正常标签为0
+
+    # 生成异常脉搏数据
+    X_abnormal_low = np.random.randint(30, 60, (25, 1))
+    X_abnormal_high = np.random.randint(101, 150, (25, 1))
+    X_abnormal = np.vstack((X_abnormal_low, X_abnormal_high))
+    y_abnormal = np.ones(50)  # 异常标签为1
+
+    # 合并正常和异常数据
+    X = np.vstack((X_normal, X_abnormal))
+    y = np.concatenate((y_normal, y_abnormal))
+
+    # 打乱数据
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    X = X[indices]
+    y = y[indices]
+
+    # 训练SVM模型
+    model = svm.SVC(kernel='linear')
+    model.fit(X, y)
+
+    return model
+
+
+def train_blood_pressure_svm():
+    # 生成正常血压数据 (Systolic: 90-120, Diastolic: 60-80)
+    X_systolic_normal = np.random.randint(90, 121, (50, 1))
+    X_diastolic_normal = np.random.randint(60, 81, (50, 1))
+    X_normal = np.hstack((X_systolic_normal, X_diastolic_normal))
+    y_normal = np.zeros(50)  # 正常标签为0
+
+    # 生成异常血压数据
+    X_systolic_abnormal_low = np.random.randint(60, 90, (25, 1))
+    X_systolic_abnormal_high = np.random.randint(121, 160, (25, 1))
+    X_diastolic_abnormal_low = np.random.randint(40, 60, (25, 1))
+    X_diastolic_abnormal_high = np.random.randint(81, 110, (25, 1))
+
+    X_systolic_abnormal = np.vstack((X_systolic_abnormal_low, X_systolic_abnormal_high))
+    X_diastolic_abnormal = np.vstack((X_diastolic_abnormal_low, X_diastolic_abnormal_high))
+
+    X_abnormal = np.hstack((X_systolic_abnormal, X_diastolic_abnormal))
+    y_abnormal = np.ones(50)  # 异常标签为1
+
+    # 合并正常和异常数据
+    X = np.vstack((X_normal, X_abnormal))
+    y = np.concatenate((y_normal, y_abnormal))
+
+    # 打乱数据
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    X = X[indices]
+    y = y[indices]
+
+    # 训练SVM模型
+    model = svm.SVC(kernel='linear')
+    model.fit(X, y)
+
+    return model
+
+
+# 训练模型
+heartbeat_model = train_heartbeat_svm()
+pulse_model = train_pulse_svm()
+blood_pressure_model = train_blood_pressure_svm()
+
+
+
+#MQTT
+import paho.mqtt.client as mqtt
+broker_address = "broker.emqx.io"
+port = 1883
+heartbeat_topic = "patient/heartbeat"
+pulse_topic = "patient/pulse"
+blood_pressure_topic = "patient/blood_pressure"
+
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to broker")
+        client.subscribe(heartbeat_topic)
+        client.subscribe(pulse_topic)
+        client.subscribe(blood_pressure_topic)
+    else:
+        print("Connection failed with code", rc)
+
+
+def on_message(client, userdata, message):
+    topic = message.topic
+    data = message.payload.decode("utf-8")
+
+    if topic == heartbeat_topic:
+        heartbeat = int(data)
+        print(f"Received heartbeat: {heartbeat}")
+        prediction = heartbeat_model.predict([[heartbeat]])
+        if prediction == 0:
+            print("Heartbeat is normal")
+        else:
+            print("Heartbeat is abnormal")
+
+    elif topic == pulse_topic:
+        pulse = int(data)
+        print(f"Received pulse: {pulse}")
+        prediction = pulse_model.predict([[pulse]])
+        if prediction == 0:
+            print("Pulse is normal")
+        else:
+            print("Pulse is abnormal")
+
+    elif topic == blood_pressure_topic:
+        systolic, diastolic = map(int, data.split(","))
+        print(f"Received blood pressure: Systolic={systolic}, Diastolic={diastolic}")
+        prediction = blood_pressure_model.predict([[systolic, diastolic]])
+        if prediction == 0:
+            print("Blood pressure is normal")
+        else:
+            print("Blood pressure is abnormal")
+
+
+client = mqtt.Client()
+# client.username_pw_set(username, password)
+client.on_connect = on_connect
+client.on_message = on_message
+
+client.connect(broker_address, port)
+client.loop_forever()
