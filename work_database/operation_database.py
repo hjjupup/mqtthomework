@@ -5,6 +5,7 @@ import base64
 import paho.mqtt.client as mqtt
 import time
 import threading
+import visualization_database as visual
 
 
 broker = "broker.hivemq.com"#week9的的demo1-.py的，我没改
@@ -70,6 +71,10 @@ def message_handler(client,topic,msg):
             user_id = topics[1]
             data_type = topics[3]
             query_data(user_id, data_type)
+        if operation_type=='visual_data':
+            user_id = topics[1]
+            visual.visu_user_data(user_id)
+            publish_chart(user_id,client)
     if topic_len == 6:
         data_value = topics[4]
         # print("command value is ", data_value)
@@ -193,9 +198,9 @@ def publish_chart(username, client):
 
 mqtt.Client.connected_flag = False
 clients = []
-no_threads = threading.active_count()
+no_threads = threading.active_count()#就是数有多少线程，计数的
 print("current threads =", no_threads)
-print("Creating Normal Connections ", Normal_connections, " clients")
+print("Creating Normal Connections ", Normal_connections, " clients")#这个最开始初始化成1了
 Create_connections(Normal_connections, port, False)
 if SSL_Connections != 0:
     print("Creating SSL Connections ", SSL_Connections, " clients")
@@ -224,7 +229,7 @@ try:
         for x in range(len(out_queue)):
             print(out_queue.pop())
         count += 1
-except KeyboardInterrupt:
+except KeyboardInterrupt:#报错也没写
     print("interrupted  by keyboard")
 
 for client in clients:
