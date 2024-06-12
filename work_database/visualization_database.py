@@ -13,11 +13,10 @@ def calculate_and_set_ylim(ax, systolics, diastolics):
     ax.set_ylim(min_value - 20, None)#set the size of bp因为bp的线有两条，我让图好看点在下面预留了点空间
 
 def visu_user_data(username):
-    # Connect to the database
+    #优化了一下函数，直接用username连接，少了3个输入函数
     conn = sqlite3.connect('TheHealthData.db')
     cursor = conn.cursor()
 
-    # Retrieve data for the given username
     cursor.execute('SELECT datetime, heart_rate FROM healthdata_heart_rate WHERE username=?', (username,))
     heart_rates = cursor.fetchall()
 
@@ -29,6 +28,7 @@ def visu_user_data(username):
 
     conn.close()
 
+    #多个子图的函数
     fig, ax = plt.subplots(3, 1, figsize=(10, 15))
 
     # Heart rate data
