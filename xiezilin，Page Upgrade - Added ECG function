@@ -22,6 +22,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_caching import Cache
 from datetime import datetime
+import json
+from random import randint
 
 appN = Flask(__name__)
 
@@ -57,14 +59,23 @@ class HealthData(db.Model):
     topic = db.Column(db.String(50), nullable=False)
     payload = db.Column(db.String(200), nullable=False)
 
+def generate_random_data():
+    heartbeat = randint(60, 120)  # 60-120之间的随机数
+    pulse = randint(60, 120)      # 60-120之间的随机数
+    blood_pressure = f"{randint(110, 130)}/{randint(70, 90)}"  # 随机生成血压值
+    return {
+        'heartbeat': heartbeat,
+        'pulse': pulse,
+        'blood_pressure': blood_pressure
+    }
+
 def init_data():
-    test_data = [
-        {'topic': 'health/monitor', 'payload': '{"heartbeat": 80, "pulse": 70, "blood_pressure": "120/80"}'},
-        {'topic': 'health/monitor', 'payload': '{"heartbeat": 85, "pulse": 75, "blood_pressure": "122/82"}'},
-        {'topic': 'health/monitor', 'payload': '{"heartbeat": 90, "pulse": 72, "blood_pressure": "125/85"}'}
-    ]
-    for data in test_data:
-        health_data = HealthData(topic=data['topic'], payload=data['payload'])
+    for _ in range(50):  # 初始化50条数据
+        data = generate_random_data()
+        health_data = HealthData(
+            topic='health/monitor',
+            payload=json.dumps(data)
+        )
         db.session.add(health_data)
     db.session.commit()
 
@@ -99,9 +110,9 @@ if __name__ == '__main__':
         init_data()
     appN.run(debug=True, port=5001)
 
+requirement
 
 
-requirement.txt
 blinker==1.8.2
 click==8.1.7
 Flask==3.0.3
@@ -114,8 +125,9 @@ zipp==3.19.1
 Flask
 Flask-MQTT
 Flask-SQLAlchemy
-
 favicon.ico.html
+
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -132,12 +144,13 @@ index.html
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Monitoring Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
     <header>
-        <img src="/static/images/logo.png" alt="Logo">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo">
         <h1>Patient Health Monitoring System</h1>
     </header>
     <div id="dashboard">
@@ -147,10 +160,11 @@ index.html
         <canvas id="history-chart"></canvas>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
-    <script src="/static/js/script.js"></script>
-    <script src="/static/js/websocket.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
 </body>
 </html>
+
 
 style.css
 body {
@@ -165,10 +179,14 @@ header {
     color: white;
     padding: 10px 0;
     text-align: center;
+    position: relative;
 }
 
 header img {
     height: 50px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
 }
 
 #dashboard {
@@ -181,102 +199,10 @@ canvas {
     border: 1px solid #ccc;
 }
 
-script.js
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("Page is fully loaded. Initializing data fetch...");
-
-    const realtimeCtx = document.getElementById('realtime-chart').getContext('2d');
-    const historyCtx = document.getElementById('history-chart').getContext('2d');
-
-    const realtimeChart = new Chart(realtimeCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Realtime Data',
-                data: [],
-                borderColor: 'rgba(128, 0, 128, 1)', // 紫色线条
-                backgroundColor: 'rgba(128, 0, 128, 0.2)' // 紫色背景（带有透明度）
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    min: 60, // 设置Y轴的最小值
-                    max: 100, // 设置Y轴的最大值
-                    ticks: {
-                        stepSize: 5 // 设置刻度的步长
-                    }
-                }
-            }
-        }
-    });
-
-    const historyChart = new Chart(historyCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Historical Data',
-                data: [],
-                borderColor: 'rgba(128, 0, 128, 1)', // 紫色线条
-                backgroundColor: 'rgba(128, 0, 128, 0.2)' // 紫色背景（带有透明度）
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    min: 60, // 设置Y轴的最小值
-                    max: 100, // 设置Y轴的最大值
-                    ticks: {
-                        stepSize: 5 // 设置刻度的步长
-                    }
-                }
-            }
-        }
-    });
-
-    fetchData();
-    setInterval(fetchData, 5000);
-
-    function fetchData() {
-        console.log("Fetching data from server...");
-
-        fetch('/data')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                console.log("Data fetched successfully.");
-                return response.json();
-            })
-            .then(data => {
-                console.log("Data received:", data);
-                updateCharts(data);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
-    }
-
-    function updateCharts(data) {
-        console.log("Updating charts with new data...");
-
-        const labels = data.map(item => item.timestamp);
-        const values = data.map(item => JSON.parse(item.payload).heartbeat);
-
-        realtimeChart.data.labels = labels;
-        realtimeChart.data.datasets[0].data = values;
-        realtimeChart.update();
-
-        historyChart.data.labels = labels;
-        historyChart.data.datasets[0].data = values;
-        historyChart.update();
-    }
-});
 
 
-web.js
+
+websocket.js
 const realtimeChart = new Chart(realtimeCtx, {
     type: 'line',
     data: { labels: [], datasets: [{ label: 'Realtime Data', data: [] }] },
@@ -298,6 +224,8 @@ ws.onmessage = function(event) {
 };
 
 
+
+
 chart.js
 const ws = new WebSocket('ws://localhost:5001/realtime');
 
@@ -312,6 +240,156 @@ ws.onmessage = function(event) {
     realtimeChart.data.datasets[0].data.push(values);
     realtimeChart.update();
 };
+
+
+
+
+
+
+script.js
+document.addEventListener("DOMContentLoaded", function() {
+    const realtimeCtx = document.getElementById('realtime-chart').getContext('2d');
+    const historyCtx = document.getElementById('history-chart').getContext('2d');
+
+    const realtimeChart = new Chart(realtimeCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Heartbeat',
+                data: [],
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                yAxisID: 'y',
+            }, {
+                label: 'Pulse',
+                data: [],
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'y1',
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    min: 50,
+                    max: 150
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: 50,
+                    max: 150,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                }
+            }
+        }
+    });
+
+    const historyChart = new Chart(historyCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Heartbeat',
+                data: [],
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                yAxisID: 'y',
+            }, {
+                label: 'Pulse',
+                data: [],
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'y1',
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    min: 50,
+                    max: 150
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: 50,
+                    max: 150,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                }
+            }
+        }
+    });
+
+    function getRandomData() {
+        const heartbeat = Math.floor(Math.random() * 60) + 60; // 60-120之间的随机数
+        const pulse = Math.floor(Math.random() * 60) + 60;     // 60-120之间的随机数
+        return { heartbeat, pulse };
+    }
+
+    function updateCharts() {
+        const newData = getRandomData();
+        const timestamp = new Date().toLocaleTimeString();
+
+        if (realtimeChart.data.labels.length > 20) {
+            realtimeChart.data.labels.shift();
+            realtimeChart.data.datasets[0].data.shift();
+            realtimeChart.data.datasets[1].data.shift();
+        }
+
+        realtimeChart.data.labels.push(timestamp);
+        realtimeChart.data.datasets[0].data.push(newData.heartbeat);
+        realtimeChart.data.datasets[1].data.push(newData.pulse);
+        realtimeChart.update();
+
+        if (historyChart.data.labels.length > 50) {
+            historyChart.data.labels.shift();
+            historyChart.data.datasets[0].data.shift();
+            historyChart.data.datasets[1].data.shift();
+        }
+
+        historyChart.data.labels.push(timestamp);
+        historyChart.data.datasets[0].data.push(newData.heartbeat);
+        historyChart.data.datasets[1].data.push(newData.pulse);
+        historyChart.update();
+    }
+
+    setInterval(updateCharts, 5000); // 每5秒更新一次图表
+});
+
+
+chart.js
+const ws = new WebSocket('ws://localhost:5001/realtime');
+
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log("Realtime data received:", data);
+
+    const labels = [data.timestamp];
+    const values = [JSON.parse(data.payload).heartbeat];
+
+    realtimeChart.data.labels.push(labels);
+    realtimeChart.data.datasets[0].data.push(values);
+    realtimeChart.update();
+};
+
+
+
+
+
+
 
 mqtt-client.py
 from flask_mqtt import Mqtt
