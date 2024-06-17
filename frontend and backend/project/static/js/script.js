@@ -84,15 +84,13 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    function getRandomData() {
-        const heartbeat = Math.floor(Math.random() * 60) + 60; // 60-120之间的随机数
-        const pulse = Math.floor(Math.random() * 60) + 60;     // 60-120之间的随机数
-        return { heartbeat, pulse };
-    }
+    const socket = io.connect('http://localhost:5001');
 
-    function updateCharts() {
-        const newData = getRandomData();
-        const timestamp = new Date().toLocaleTimeString();
+    socket.on('mqtt_message', function(data) {
+        const timestamp = data.timestamp;
+        const payload = JSON.parse(data.payload);
+        const heartbeat = payload.heartbeat;
+        const pulse = payload.pulse;
 
         if (realtimeChart.data.labels.length > 20) {
             realtimeChart.data.labels.shift();
@@ -101,8 +99,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         realtimeChart.data.labels.push(timestamp);
-        realtimeChart.data.datasets[0].data.push(newData.heartbeat);
-        realtimeChart.data.datasets[1].data.push(newData.pulse);
+        realtimeChart.data.datasets[0].data.push(heartbeat);
+        realtimeChart.data.datasets[1].data.push(pulse);
         realtimeChart.update();
 
         if (historyChart.data.labels.length > 50) {
@@ -112,12 +110,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         historyChart.data.labels.push(timestamp);
-        historyChart.data.datasets[0].data.push(newData.heartbeat);
-        historyChart.data.datasets[1].data.push(newData.pulse);
+        historyChart.data.datasets[0].data.push(heartbeat);
+        historyChart.data.datasets[1].data.push(pulse);
         historyChart.update();
-    }
-
-    setInterval(updateCharts, 5000); // 每5秒更新一次图表
+    });
 });
 
 
