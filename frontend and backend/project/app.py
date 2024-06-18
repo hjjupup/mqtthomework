@@ -1,17 +1,19 @@
 from flask import Flask, jsonify, render_template
 from flask_mqtt import Mqtt
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager
 from flask_caching import Cache
 from flask_socketio import SocketIO, emit
 from datetime import datetime
 import json
 from random import randint
 import os
+import subprocess
+import time
 
 app = Flask(__name__)
 
-# MQTT Configuration
+# MQTT配置
 app.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'
 app.config['MQTT_BROKER_PORT'] = 1883
 app.config['MQTT_USERNAME'] = ''
@@ -21,15 +23,15 @@ app.config['MQTT_TLS_ENABLED'] = False
 
 mqtt = Mqtt(app)
 
-# Database Configuration
+# 数据库配置
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///health_data.db'
 db = SQLAlchemy(app)
 
-# JWT Configuration
+# JWT配置
 app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
 jwt = JWTManager(app)
 
-# Cache Configuration
+# 缓存配置
 app.config['CACHE_TYPE'] = 'RedisCache'
 app.config['CACHE_REDIS_HOST'] = 'localhost'
 app.config['CACHE_REDIS_PORT'] = 6379
@@ -37,8 +39,8 @@ app.config['CACHE_REDIS_DB'] = 0
 app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
 cache = Cache(app)
 
-# SocketIO Initialization
-socketio = SocketIO(app, cors_allowed_origins="*")  # Allow all origins for development
+# SocketIO初始化
+socketio = SocketIO(app, cors_allowed_origins="*")  # 允许所有来源进行跨域请求（开发环境）
 
 class HealthData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -92,25 +94,37 @@ def handle_mqtt_message(client, userdata, message):
 
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected')
-    emit('message', {'data': 'Connected'})
+    print('客户端已连接')
+    emit('message', {'data': '已连接'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('Client disconnected')
+    print('客户端已断开连接')
 
 if __name__ == '__main__':
-    from pyngrok import ngrok
+    # 使用localtunnel来公开你的本地Flask应用
+    # 在后台启动Flask应用
+    flask_process = subprocess.Popen(['python3', 'app.py'])
 
-    # Start ngrok
-    public_url = ngrok.connect(5001)
-    print(" * ngrok URL:", public_url)
+    # 等待Flask应用启动（根据需要调整等待时间）
+    time.sleep(5)
 
-    with app.app_context():
-        db.create_all()
-        init_data()
+    # 使用localtunnel将端口5001公开到一个公共URL
+    localtunnel_process = subprocess.Popen(['lt', '--port', '5001'])
 
-    socketio.run(app, debug=True, port=5001)
+    # 可选：打印localtunnel URL
+    print(" * Localtunnel URL: https://your_subdomain.loca.lt")
+
+    try:
+        # 等待两个进程结束
+        flask_process.wait()
+        localtunnel_process.wait()
+    except KeyboardInterrupt:
+        # 处理键盘中断
+        flask_process.terminate()
+        localtunnel_process.terminate()
+        print(" * 进程已终止.")
+
 
 
 
