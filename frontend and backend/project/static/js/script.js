@@ -84,69 +84,38 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    const socket = io.connect();
+    const socket = io.connect('http://localhost:5000');
 
-    // WebSocket处理实时数据
-    const ws = new WebSocket('ws://localhost:5001/realtime');
-
-    ws.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        console.log("Realtime data received:", data);
-
+    socket.on('mqtt_message', function(data) {
         const timestamp = data.timestamp;
         const payload = JSON.parse(data.payload);
         const heartbeat = payload.heartbeat;
         const pulse = payload.pulse;
 
-        if (realtimeChart.data.labels.length >= 20) {
+        if (realtimeChart.data.labels.length > 20) {
             realtimeChart.data.labels.shift();
             realtimeChart.data.datasets[0].data.shift();
             realtimeChart.data.datasets[1].data.shift();
         }
+
         realtimeChart.data.labels.push(timestamp);
         realtimeChart.data.datasets[0].data.push(heartbeat);
         realtimeChart.data.datasets[1].data.push(pulse);
         realtimeChart.update();
 
-        if (historyChart.data.labels.length >= 50) {
+        if (historyChart.data.labels.length > 50) {
             historyChart.data.labels.shift();
             historyChart.data.datasets[0].data.shift();
             historyChart.data.datasets[1].data.shift();
         }
-        historyChart.data.labels.push(timestamp);
-        historyChart.data.datasets[0].data.push(heartbeat);
-        historyChart.data.datasets[1].data.push(pulse);
-        historyChart.update();
-    };
 
-    // SocketIO处理历史数据
-    socket.on('mqtt_message', function(data) {
-        const payload = JSON.parse(data.payload);
-        const heartbeat = payload.heartbeat;
-        const pulse = payload.pulse;
-        const timestamp = new Date(data.timestamp).toLocaleString();
-
-        if (realtimeChart.data.labels.length >= 20) {
-            realtimeChart.data.labels.shift();
-            realtimeChart.data.datasets[0].data.shift();
-            realtimeChart.data.datasets[1].data.shift();
-        }
-        realtimeChart.data.labels.push(timestamp);
-        realtimeChart.data.datasets[0].data.push(heartbeat);
-        realtimeChart.data.datasets[1].data.push(pulse);
-        realtimeChart.update();
-
-        if (historyChart.data.labels.length >= 50) {
-            historyChart.data.labels.shift();
-            historyChart.data.datasets[0].data.shift();
-            historyChart.data.datasets[1].data.shift();
-        }
         historyChart.data.labels.push(timestamp);
         historyChart.data.datasets[0].data.push(heartbeat);
         historyChart.data.datasets[1].data.push(pulse);
         historyChart.update();
     });
 });
+
 
 
 
