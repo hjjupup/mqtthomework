@@ -7,8 +7,6 @@ from flask_socketio import SocketIO, emit
 from datetime import datetime
 import json
 from random import randint
-import os
-import subprocess
 
 app = Flask(__name__)
 
@@ -92,20 +90,23 @@ def handle_mqtt_message(client, userdata, message):
     db.session.commit()
 
 @socketio.on('connect')
-def handle_connect_socket():
+def handle_connect():
     print('Client connected')
     emit('message', {'data': 'Connected'})
 
 @socketio.on('disconnect')
-def handle_disconnect_socket():
+def handle_disconnect():
     print('Client disconnected')
 
 if __name__ == '__main__':
-    # Start Flask app in the background
-    subprocess.Popen(["python3", "app.py"])
+    from pyngrok import ngrok
 
-    # Start Localtunnel to expose the local Flask server
-    subprocess.Popen(["lt", "--port", "5001"])
+    # Start ngrok
+    public_url = ngrok.connect(5000)
+    print(" * ngrok URL:", public_url)
 
+    with app.app_context():
+        db.create_all()
+        init_data()
 
-
+    socketio.run(app, debug=True, port=5000)
