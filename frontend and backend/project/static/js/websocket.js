@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://localhost:5001/realtime');
+const ws = new WebSocket('ws://localhost:5000/realtime');
 
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
