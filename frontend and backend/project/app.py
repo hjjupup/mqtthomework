@@ -7,6 +7,7 @@ from flask_socketio import SocketIO, emit
 from datetime import datetime
 import json
 from random import randint
+import os
 
 app = Flask(__name__)
 
@@ -67,7 +68,7 @@ def init_data():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return 'Hello, World!'  # Simple text response for testing
 
 @app.route('/data')
 @cache.cached(timeout=60)
@@ -92,6 +93,7 @@ def handle_mqtt_message(client, userdata, message):
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
+    emit('message', {'data': 'Connected'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -101,9 +103,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         init_data()
-    socketio.run(app, debug=True, port=5001, allow_unsafe_werkzeug=True)
-
-
+    socketio.run(app, debug=True, port=5001)
 
 
 
