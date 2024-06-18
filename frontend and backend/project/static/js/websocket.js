@@ -1,4 +1,26 @@
-const ws = new WebSocket('ws://localhost:5000/realtime');
+const realtimeChart = new Chart(realtimeCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Realtime Data', data: [] }] },
+});
+
+const ws = new WebSocket('ws://localhost:5001/realtime');
+
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log("Realtime data received:", data);
+
+    const timestamp = data.timestamp;
+    const payload = JSON.parse(data.payload);
+    const heartbeat = payload.heartbeat;
+
+    realtimeChart.data.labels.push(timestamp);
+    realtimeChart.data.datasets[0].data.push(heartbeat);
+    realtimeChart.update();
+};
+
+
+chart.js
+const ws = new WebSocket('ws://localhost:5001/realtime');
 
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
