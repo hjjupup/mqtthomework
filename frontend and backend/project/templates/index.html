@@ -3,58 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Monitoring Dashboard</title>
+    <title>Health Monitor Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 </head>
 <body>
     <header>
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
-        <h1>Health Monitoring Dashboard</h1>
+        <h1>Health Monitor Dashboard</h1>
     </header>
     <div id="dashboard">
-        <canvas id="realtime-chart"></canvas>
-        <canvas id="history-chart"></canvas>
+        <canvas id="realtime-chart" width="400" height="200"></canvas>
+        <canvas id="history-chart" width="400" height="200"></canvas>
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const socket = io.connect('{{ ngrok_url }}');
-
-            socket.on('mqtt_message', function(data) {
-                const timestamp = data.timestamp;
-                const payload = JSON.parse(data.payload);
-                const heartbeat = payload.heartbeat;
-                const pulse = payload.pulse;
-
-                if (realtimeChart.data.labels.length > 20) {
-                    realtimeChart.data.labels.shift();
-                    realtimeChart.data.datasets[0].data.shift();
-                    realtimeChart.data.datasets[1].data.shift();
-                }
-
-                realtimeChart.data.labels.push(timestamp);
-                realtimeChart.data.datasets[0].data.push(heartbeat);
-                realtimeChart.data.datasets[1].data.push(pulse);
-                realtimeChart.update();
-
-                if (historyChart.data.labels.length > 50) {
-                    historyChart.data.labels.shift();
-                    historyChart.data.datasets[0].data.shift();
-                    historyChart.data.datasets[1].data.shift();
-                }
-
-                historyChart.data.labels.push(timestamp);
-                historyChart.data.datasets[0].data.push(heartbeat);
-                historyChart.data.datasets[1].data.push(pulse);
-                historyChart.update();
-            });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
 </body>
 </html>
+
 
 
 
