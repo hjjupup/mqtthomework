@@ -12,5 +12,5 @@ Flask-SQLAlchemy
 Flask-JWT-Extended
 Flask-Caching
 Flask-SocketIO
-pyngrok
 redis
+localtunnel
