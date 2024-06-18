@@ -68,7 +68,7 @@ def init_data():
 
 @app.route('/')
 def index():
-    return 'Hello, World!'  # Simple text response for testing
+    return render_template('index.html')
 
 @app.route('/data')
 @cache.cached(timeout=60)
@@ -100,9 +100,16 @@ def handle_disconnect():
     print('Client disconnected')
 
 if __name__ == '__main__':
+    from pyngrok import ngrok
+
+    # Start ngrok
+    public_url = ngrok.connect(5001)
+    print(" * ngrok URL:", public_url)
+
     with app.app_context():
         db.create_all()
         init_data()
+
     socketio.run(app, debug=True, port=5001)
 
 
