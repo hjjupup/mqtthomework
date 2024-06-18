@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 from random import randint
 
+
 app = Flask(__name__)
 
 # MQTT Configuration
@@ -92,21 +93,16 @@ def handle_mqtt_message(client, userdata, message):
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
-    emit('message', {'data': 'Connected'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     print('Client disconnected')
 
 if __name__ == '__main__':
-    from pyngrok import ngrok
-
-    # Start ngrok
-    public_url = ngrok.connect(5000)
-    print(" * ngrok URL:", public_url)
-
     with app.app_context():
         db.create_all()
         init_data()
+    socketio.run(app, debug=True, port=5001, allow_unsafe_werkzeug=True)
 
-    socketio.run(app, debug=True, port=5000)
+
+
