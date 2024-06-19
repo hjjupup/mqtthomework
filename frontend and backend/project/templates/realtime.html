@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Data</title>
+    <!-- Include any necessary stylesheets or libraries -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Realtime Health Data</h1>
+        <div id="realtime-chart-container">
+            <canvas id="realtime-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Include your WebSocket script -->
+    <script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
+</body>
+</html>

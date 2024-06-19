@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Data Dashboard</title>
+    <title>Choose</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to Health Data Dashboard</h1>
+        <h1>Choose an option</h1>
         {% if username %}
             <p>Hello, {{ username }}!</p>
             <button onclick="location.href='/logout'">Logout</button>
+            <h2>Health Data Dashboard</h2>
+            <div id="chart-container">
+                <canvas id="realtime-chart"></canvas>
+            </div>
         {% else %}
-            <p>Please choose an option:</p>
             <button onclick="location.href='/login'">Login</button>
             <button onclick="location.href='/register'">Register</button>
         {% endif %}
     </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
 </body>
 </html>
-
-

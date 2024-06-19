@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    const socket = io.connect('http://localhost:5000');
+    const socket = io.connect('http://localhost:5001');
 
     socket.on('mqtt_message', function(data) {
         const timestamp = data.timestamp;
@@ -115,9 +115,5 @@ document.addEventListener("DOMContentLoaded", function() {
         historyChart.update();
     });
 });
-
-
-
-
 
 
