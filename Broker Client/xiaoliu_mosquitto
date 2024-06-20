@@ -2,25 +2,38 @@
 #mosquitto
 #mqtt_broker
 
+# Install Mosquitto MQTT broker
+sudo apt-get install mosquitto
 
-sudo vi /etc/mosquitto/conf.d/myconfig.conf
-#添加监听端口（很重要，否则只能本机访问）
+# Install Mosquitto clients to test the broker
+sudo apt-get install mosquitto-clients
+
+# Enable the Mosquitto service to start on boot
+sudo systemctl enable mosquitto
+
+# Start the Mosquitto service
+sudo systemctl start mosquitto
+
+# Check the status of the Mosquitto service
+sudo systemctl status mosquitto
+
+# In the first terminal, subscribe to a test topic
+mosquitto_sub -h localhost -t test/topic
+
+# In the second terminal, publish a message to the test topic
+mosquitto_pub -h localhost -t test/topic -m "Hello, MQTT"
+
+#Configure Mosquitto
+sudo nano /etc/mosquitto/mosquitto.conf
+
+# Allow anonymous connections (default is true)
+allow_anonymous true
+
+# Default listener
 listener 1883
-#-------------------------------------------
-# 关闭匿名访问，客户端必须使用用户名
-allow_anonymous false
 
-#指定 用户名-密码 文件
-password_file /etc/mosquitto/pwfile.txt
-#--------------------------------------------
+#Save the file and restart the Mosquitto service to apply the changes
+sudo systemctl restart mosquitto
 
-sudo mosquitto_passwd -c /etc/mosquitto/pwfile.txt xiaoliu
-#回车后连续输两次密码
-
-sudo service mosquitto start
-sudo service mosquitto status
-
-mosquitto_sub -h localhost -t "lai001/#" -u xiaoliu -P 123456 -i “client1”
-mosquitto_pub -h localhost -t "lai001/testTopic" -u xiaoliu -P 123456 -m "Hello MQTT from mosquitto-clients"
-
-
+# Allow MQTT traffic on port 1883
+sudo ufw allow 1883
