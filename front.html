@@ -11,14 +11,7 @@
 <!-- 为 ECharts 准备一个定义了宽高的 DOM -->
 <div>
     <div style="float: left;position: relative;left: 600px">
-        <!--        <input type="text" placeholder="请输入最大限制电压" onblur="inputV(this)">-->
-        <!--        <input type="text" placeholder="请输入最大限制电流" onblur="inputA(this)">-->
-        <!--        <input type="text" placeholder="请输入电费价格" onblur="inputSpeed(this)">-->
-        <!--        <span style="font-size: 30px">io口状态:</span>-->
-        <!--        <span id="ioState" style="font-size: 30px;color: red">断开</span>-->
-        <!--        <span style="font-size: 30px">电费累计:</span>-->
-        <!--        <span id="speedElectricDom" style="font-size: 30px;color: red">10</span>-->
-        <!--        <button id="immediateUpdate">立即刷新数据</button>-->
+     
     </div>
     <div id="main" style="width: 100%;height:800px;"></div>
 
@@ -253,7 +246,7 @@
             }
         });
     }
-
+    //该前端可通过链接访问http://ljy.sweetcat.vip/
     updateData();
     setInterval(updateData, 3000);
 </script>
