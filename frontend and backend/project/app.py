@@ -7,7 +7,6 @@ from flask_socketio import SocketIO, emit
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
-from random import randint
 
 app = Flask(__name__)
 
@@ -62,21 +61,14 @@ class HealthData(db.Model):
     topic = db.Column(db.String(50), nullable=False)
     payload = db.Column(db.String(200), nullable=False)
 
-# Function to generate random health data
-def generate_random_data():
-    heartbeat = randint(60, 120)
-    pulse = randint(60, 120)
-    blood_pressure = f"{randint(110, 130)}/{randint(70, 90)}"
-    return {
-        'heartbeat': heartbeat,
-        'pulse': pulse,
-        'blood_pressure': blood_pressure
-    }
-
 # Function to initialize dummy health data
 def init_data():
     for _ in range(50):
-        data = generate_random_data()
+        data = {
+            'heartbeat': 80,
+            'pulse': 70,
+            'blood_pressure': '120/80'
+        }
         health_data = HealthData(
             topic='health/monitor',
             payload=json.dumps(data)
@@ -178,5 +170,6 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         init_data()
-    socketio.run(app, debug=True, port=5001, host='0.0.0.0', use_reloader=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=True, port=5002, host='0.0.0.0', use_reloader=False, allow_unsafe_werkzeug=True)
+
 

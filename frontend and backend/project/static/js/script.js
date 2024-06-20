@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    const socket = io.connect('http://localhost:5001');
+    const socket = io.connect('http://localhost:5002');
 
     socket.on('mqtt_message', function(data) {
         const timestamp = data.timestamp;
@@ -92,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const heartbeat = payload.heartbeat;
         const pulse = payload.pulse;
 
+        // Update real-time chart
         if (realtimeChart.data.labels.length > 20) {
             realtimeChart.data.labels.shift();
             realtimeChart.data.datasets[0].data.shift();
@@ -103,6 +104,7 @@ document.addEventListener("DOMContentLoaded", function() {
         realtimeChart.data.datasets[1].data.push(pulse);
         realtimeChart.update();
 
+        // Update historical chart
         if (historyChart.data.labels.length > 50) {
             historyChart.data.labels.shift();
             historyChart.data.datasets[0].data.shift();
@@ -115,5 +117,7 @@ document.addEventListener("DOMContentLoaded", function() {
         historyChart.update();
     });
 });
+
+
 
 
