@@ -5,7 +5,7 @@
 
 刘桐宇：负责mqtt 客户端源代码撰写 mqtt broker搭建
 
-李嘉屹：负责mqtt 消息传输部分
+李嘉屹：负责mqtt 连接部分
 
 黄琦康：负责订阅者部分 subcriber函数代码
 
