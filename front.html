@@ -39,14 +39,13 @@
         mV.push(1);
         xAxisDatas.push(1);
     }
-    // updateA();
-    // updateV();
+  
     function inputV(t) {
         let value = parseFloat($(t).val())
         if (!isNaN(value)) {
             console.log(value)
             maxV = value;
-            // updateData();
+            
             alert("设置将在下一次获取数据时生效");
         } else {
             alert("err");
@@ -59,7 +58,7 @@
         if (!isNaN(value)) {
             console.log(value)
             maxA = value;
-            // updateData();
+           
             alert("设置将在下一次获取数据时生效");
         } else {
             alert("err");
@@ -67,13 +66,13 @@
     }
 
     function inputSpeed(t) {
-        // console.log(111)
+       
         electricPrice = parseFloat($(t).val())
         if (isNaN(electricPrice)) {
-            // console.log(speedElectric);
+           
             electricPrice = 0;
             alert("err");
-            // $("#speedElectric").text()
+           
         } else {
             alert("设置将在下一次获取数据时生效");
         }
@@ -86,89 +85,76 @@
         var myChart = echarts.init(document.getElementById('main'));
         var option = {
             color: colors,
-            title: {//表格标题
+            title: {
                 text: '心率监控'
             },
-            tooltip: {//显示提升框
+            tooltip: {
                 trigger: 'axis'
             },
-            legend: {//表头的选项
-                // data: ['当前电压', '限制电压']
+            legend: {
+               
             },
-            // grid: {//图标的偏移
-            //     left: '3%',
-            //     right: '4%',
-            //     bottom: '3%',
-            //     containLabel: true
-            // },
-            toolbox: {//标头工具箱
+           
+            toolbox: {
                 feature: {
                     saveAsImage: {}
                 }
             },
-            xAxis: {//表格的横坐标显示
+            xAxis: {
                 type: 'category',
                 boundaryGap: false,
                 data: xAxisDatas
             },
-            yAxis: {//纵坐标的
-                // boundaryGap: [0, '50%'],
+            yAxis: {
+               
                 type: 'value'
             },
             series: [
                 {
                     name: '当前心率',
                     type: 'line',
-                    // stack: 'Total',//数据是否堆叠
+                
                     data: V,
                     smooth: true
                 },
-                // {
-                //     name: '限制电压',
-                //     type: 'line',
-                //     // stack: 'Total',
-                //     data: mV,
-                //     smooth: true
-                // }
+               
             ]
         };
         myChart.setOption(option);
     }
 
-    // 基于准备好的dom，初始化echarts实例
+    
 
     function updateA() {
         const colors = ['#5470C6', '#EE6666'];
         var myChart1 = echarts.init(document.getElementById('main1'));
-        // 指定图表的配置项和数据
+       
         var option1 = {
             color: colors,
-            title: {//表格标题
+            title: 
                 text: '心率监控'
             },
-            tooltip: {//显示提升框
+            tooltip: {
                 trigger: 'axis'
             },
-            // legend: {//表头的选项
-            //     data: ['当前电流', '限制电流']
-            // },
-            grid: {//图标的偏移
+           
+            grid: {
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
                 containLabel: true
             },
-            toolbox: {//标头工具箱
+            toolbox: {
                 feature: {
                     saveAsImage: {}
                 }
             },
-            xAxis: {//表格的横坐标显示
+            xAxis: {
                 type: 'category',
                 boundaryGap: false,
                 data: xAxisDatas
             },
-            yAxis: {//纵坐标的
+            yAxis: {
                 type: 'value'
             },
             series: [
@@ -179,17 +165,10 @@
                     data: A,
                     smooth: true
                 },
-                // {
-                //     name: '限制电流',
-                //     type: 'line',
-                //     // stack: 'Total',
-                //     data: mA,
-                //     smooth: true
-                // }
+                
             ]
         };
-        // 使用刚指定的配置项和数据显示图表。
-        // myChart1.setOption(option1);
+       
     }
 
     function updateData() {
@@ -199,14 +178,14 @@
             data: {"uid": "90895d3545b31d9fed8e574329798f99", "topic": "test", "type": "1", "num": "1"},
             cache: false,
             success: function (response) {
-                // retDatas=response.data
+               
                 for (let i = 0; i < response.data.length; i++) {
                     let retData = JSON.parse(response.data[i].msg);
                     let retData_time = response.data[i].time.substring(11);
                     retDatas.push(retData);
                     V.push(response.data[i].msg);
                     A.push(0);
-                    // document.getElementById("hash").innerHTML =retData.H;
+                   
                     mA.push(maxA);
                     mV.push(maxV);
                     xAxisDatas.push(retData_time);
@@ -223,12 +202,11 @@
                     console.log(parseFloat(retData.aE) * parseInt(electricPrice) / 3600);
                     $("#speedElectricDom").text((parseFloat(retData.aE) * electricPrice / 3600).toFixed(5));
 
-                    // retDatas.A.push(A);
+                    
                     console.log(retData_time);
                 }
                 console.log(V);
-                // console.log(A);
-                // console.log(retDatas);
+               
                 A.shift();
                 V.shift();
                 mA.shift();
@@ -239,7 +217,7 @@
 
 
             },
-            // xhr是ajax对象
+           
             error: function (xhr) {
                 alert("fail");
                 console.log(xhr);
