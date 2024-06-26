@@ -8,41 +8,36 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
+class Config:
+    SECRET_KEY = 'your_secret_key'
+    MQTT_BROKER_URL = 'broker.hivemq.com'
+    MQTT_BROKER_PORT = 1883
+    MQTT_USERNAME = ''
+    MQTT_PASSWORD = ''
+    MQTT_KEEPALIVE = 60
+    MQTT_TLS_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///health_data.db'
+    JWT_SECRET_KEY = 'your_jwt_secret_key'
+    CACHE_TYPE = 'RedisCache'
+    CACHE_REDIS_HOST = 'localhost'
+    CACHE_REDIS_PORT = 6379
+    CACHE_REDIS_DB = 0
+    CACHE_REDIS_URL = 'redis://localhost:6379/0'
+
 app = Flask(__name__)
-
-# Flask Session Configuration
-app.secret_key = 'your_secret_key'
-
-# MQTT Configuration
-app.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'
-app.config['MQTT_BROKER_PORT'] = 1883
-app.config['MQTT_USERNAME'] = ''
-app.config['MQTT_PASSWORD'] = ''
-app.config['MQTT_KEEPALIVE'] = 60
-app.config['MQTT_TLS_ENABLED'] = False
-
+app.config.from_object(Config)
 mqtt = Mqtt(app)
-
-# Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///health_data.db'
 db = SQLAlchemy(app)
-
-# JWT Configuration
-app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
 jwt = JWTManager(app)
-
-# Cache Configuration
-app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_HOST'] = 'localhost'
-app.config['CACHE_REDIS_PORT'] = 6379
-app.config['CACHE_REDIS_DB'] = 0
-app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
 cache = Cache(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# SocketIO Initialization
-socketio = SocketIO(app, cors_allowed_origins="*")  # Allow all origins for development
+class HealthData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    topic = db.Column(db.String(50), nullable=False)
+    payload = db.Column(db.String(200), nullable=False)
 
-# User Model (for authentication)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -54,14 +49,6 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# Health Data Model
-class HealthData(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    topic = db.Column(db.String(50), nullable=False)
-    payload = db.Column(db.String(200), nullable=False)
-
-# Function to initialize dummy health data
 def init_data():
     for _ in range(50):
         data = {
@@ -75,8 +62,6 @@ def init_data():
         )
         db.session.add(health_data)
     db.session.commit()
-
-# Routes
 
 @app.route('/')
 def index():
@@ -139,8 +124,6 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('index'))
 
-# MQTT Handling
-
 @mqtt.on_connect()
 def handle_connect(client, userdata, flags, rc):
     mqtt.subscribe('health/#')
@@ -156,8 +139,6 @@ def handle_mqtt_message(client, userdata, message):
         'payload': data.payload
     })
 
-# SocketIO Events
-
 @socketio.on('connect')
 def handle_connect_socketio():
     print('Client connected')
@@ -171,5 +152,8 @@ if __name__ == '__main__':
         db.create_all()
         init_data()
     socketio.run(app, debug=True, port=5002, host='0.0.0.0', use_reloader=False, allow_unsafe_werkzeug=True)
+
+
+
 
 
